@@ -20,7 +20,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.List;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.AnnotationConfigurationException;
@@ -33,10 +33,11 @@ import org.springframework.test.context.support.DirtiesContextTestExecutionListe
 import org.springframework.test.context.transaction.TransactionalTestExecutionListener;
 import org.springframework.test.context.web.ServletTestExecutionListener;
 
-import static java.util.Arrays.*;
-import static java.util.stream.Collectors.*;
-import static org.junit.Assert.*;
-import static org.springframework.test.context.TestExecutionListeners.MergeMode.*;
+import static java.util.Arrays.asList;
+import static java.util.stream.Collectors.toList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
 
 /**
  * Unit tests for the {@link TestExecutionListeners @TestExecutionListeners}
@@ -51,14 +52,14 @@ import static org.springframework.test.context.TestExecutionListeners.MergeMode.
  * @author Sam Brannen
  * @since 2.5
  */
-public class TestExecutionListenersTests {
+class TestExecutionListenersTests {
 
 	@Test
-	public void defaultListeners() {
-		List<Class<?>> expected = asList(EventPublishingTestExecutionListener.class, ServletTestExecutionListener.class,
+	void defaultListeners() {
+		List<Class<?>> expected = asList(ServletTestExecutionListener.class,
 				DirtiesContextBeforeModesTestExecutionListener.class, DependencyInjectionTestExecutionListener.class,
 				DirtiesContextTestExecutionListener.class, TransactionalTestExecutionListener.class,
-				SqlScriptsTestExecutionListener.class);
+				SqlScriptsTestExecutionListener.class, EventPublishingTestExecutionListener.class);
 		assertRegisteredListeners(DefaultListenersTestCase.class, expected);
 	}
 
@@ -66,11 +67,11 @@ public class TestExecutionListenersTests {
 	 * @since 4.1
 	 */
 	@Test
-	public void defaultListenersMergedWithCustomListenerPrepended() {
-		List<Class<?>> expected = asList(QuuxTestExecutionListener.class, EventPublishingTestExecutionListener.class,
-				ServletTestExecutionListener.class, DirtiesContextBeforeModesTestExecutionListener.class,
-				DependencyInjectionTestExecutionListener.class, DirtiesContextTestExecutionListener.class,
-				TransactionalTestExecutionListener.class, SqlScriptsTestExecutionListener.class);
+	void defaultListenersMergedWithCustomListenerPrepended() {
+		List<Class<?>> expected = asList(QuuxTestExecutionListener.class, ServletTestExecutionListener.class,
+				DirtiesContextBeforeModesTestExecutionListener.class, DependencyInjectionTestExecutionListener.class,
+				DirtiesContextTestExecutionListener.class, TransactionalTestExecutionListener.class,
+				SqlScriptsTestExecutionListener.class, EventPublishingTestExecutionListener.class);
 		assertRegisteredListeners(MergedDefaultListenersWithCustomListenerPrependedTestCase.class, expected);
 	}
 
@@ -78,11 +79,12 @@ public class TestExecutionListenersTests {
 	 * @since 4.1
 	 */
 	@Test
-	public void defaultListenersMergedWithCustomListenerAppended() {
-		List<Class<?>> expected = asList(EventPublishingTestExecutionListener.class, ServletTestExecutionListener.class,
+	void defaultListenersMergedWithCustomListenerAppended() {
+		List<Class<?>> expected = asList(ServletTestExecutionListener.class,
 				DirtiesContextBeforeModesTestExecutionListener.class, DependencyInjectionTestExecutionListener.class,
 				DirtiesContextTestExecutionListener.class, TransactionalTestExecutionListener.class,
-				SqlScriptsTestExecutionListener.class, BazTestExecutionListener.class);
+				SqlScriptsTestExecutionListener.class, EventPublishingTestExecutionListener.class,
+				BazTestExecutionListener.class);
 		assertRegisteredListeners(MergedDefaultListenersWithCustomListenerAppendedTestCase.class, expected);
 	}
 
@@ -90,21 +92,22 @@ public class TestExecutionListenersTests {
 	 * @since 4.1
 	 */
 	@Test
-	public void defaultListenersMergedWithCustomListenerInserted() {
-		List<Class<?>> expected = asList(EventPublishingTestExecutionListener.class, ServletTestExecutionListener.class,
+	void defaultListenersMergedWithCustomListenerInserted() {
+		List<Class<?>> expected = asList(ServletTestExecutionListener.class,
 				DirtiesContextBeforeModesTestExecutionListener.class, DependencyInjectionTestExecutionListener.class,
 				BarTestExecutionListener.class, DirtiesContextTestExecutionListener.class,
-				TransactionalTestExecutionListener.class, SqlScriptsTestExecutionListener.class);
+				TransactionalTestExecutionListener.class, SqlScriptsTestExecutionListener.class,
+				EventPublishingTestExecutionListener.class);
 		assertRegisteredListeners(MergedDefaultListenersWithCustomListenerInsertedTestCase.class, expected);
 	}
 
 	@Test
-	public void nonInheritedDefaultListeners() {
+	void nonInheritedDefaultListeners() {
 		assertRegisteredListeners(NonInheritedDefaultListenersTestCase.class, asList(QuuxTestExecutionListener.class));
 	}
 
 	@Test
-	public void inheritedDefaultListeners() {
+	void inheritedDefaultListeners() {
 		assertRegisteredListeners(InheritedDefaultListenersTestCase.class, asList(QuuxTestExecutionListener.class));
 		assertRegisteredListeners(SubInheritedDefaultListenersTestCase.class, asList(QuuxTestExecutionListener.class));
 		assertRegisteredListeners(SubSubInheritedDefaultListenersTestCase.class,
@@ -112,59 +115,60 @@ public class TestExecutionListenersTests {
 	}
 
 	@Test
-	public void customListeners() {
+	void customListeners() {
 		assertNumRegisteredListeners(ExplicitListenersTestCase.class, 3);
 	}
 
 	@Test
-	public void customListenersDeclaredOnInterface() {
+	void customListenersDeclaredOnInterface() {
 		assertRegisteredListeners(ExplicitListenersOnTestInterfaceTestCase.class,
-				asList(FooTestExecutionListener.class, BarTestExecutionListener.class));
+			asList(FooTestExecutionListener.class, BarTestExecutionListener.class));
 	}
 
 	@Test
-	public void nonInheritedListeners() {
+	void nonInheritedListeners() {
 		assertNumRegisteredListeners(NonInheritedListenersTestCase.class, 1);
 	}
 
 	@Test
-	public void inheritedListeners() {
+	void inheritedListeners() {
 		assertNumRegisteredListeners(InheritedListenersTestCase.class, 4);
 	}
 
 	@Test
-	public void customListenersRegisteredViaMetaAnnotation() {
+	void customListenersRegisteredViaMetaAnnotation() {
 		assertNumRegisteredListeners(MetaTestCase.class, 3);
 	}
 
 	@Test
-	public void nonInheritedListenersRegisteredViaMetaAnnotation() {
+	void nonInheritedListenersRegisteredViaMetaAnnotation() {
 		assertNumRegisteredListeners(MetaNonInheritedListenersTestCase.class, 1);
 	}
 
 	@Test
-	public void inheritedListenersRegisteredViaMetaAnnotation() {
+	void inheritedListenersRegisteredViaMetaAnnotation() {
 		assertNumRegisteredListeners(MetaInheritedListenersTestCase.class, 4);
 	}
 
 	@Test
-	public void customListenersRegisteredViaMetaAnnotationWithOverrides() {
+	void customListenersRegisteredViaMetaAnnotationWithOverrides() {
 		assertNumRegisteredListeners(MetaWithOverridesTestCase.class, 3);
 	}
 
 	@Test
-	public void customsListenersRegisteredViaMetaAnnotationWithInheritedListenersWithOverrides() {
+	void customsListenersRegisteredViaMetaAnnotationWithInheritedListenersWithOverrides() {
 		assertNumRegisteredListeners(MetaInheritedListenersWithOverridesTestCase.class, 5);
 	}
 
 	@Test
-	public void customListenersRegisteredViaMetaAnnotationWithNonInheritedListenersWithOverrides() {
+	void customListenersRegisteredViaMetaAnnotationWithNonInheritedListenersWithOverrides() {
 		assertNumRegisteredListeners(MetaNonInheritedListenersWithOverridesTestCase.class, 8);
 	}
 
-	@Test(expected = AnnotationConfigurationException.class)
-	public void listenersAndValueAttributesDeclared() {
-		new TestContextManager(DuplicateListenersConfigTestCase.class);
+	@Test
+	void listenersAndValueAttributesDeclared() {
+		assertThatExceptionOfType(AnnotationConfigurationException.class).isThrownBy(() ->
+				new TestContextManager(DuplicateListenersConfigTestCase.class));
 	}
 
 
@@ -178,14 +182,12 @@ public class TestExecutionListenersTests {
 
 	private void assertRegisteredListeners(Class<?> testClass, List<Class<?>> expected) {
 		TestContextManager testContextManager = new TestContextManager(testClass);
-		assertEquals("TELs registered for " + testClass.getSimpleName(), names(expected),
-				names(classes(testContextManager)));
+		assertThat(names(classes(testContextManager))).as("TELs registered for " + testClass.getSimpleName()).isEqualTo(names(expected));
 	}
 
 	private void assertNumRegisteredListeners(Class<?> testClass, int expected) {
 		TestContextManager testContextManager = new TestContextManager(testClass);
-		assertEquals("Num registered TELs for " + testClass, expected,
-				testContextManager.getTestExecutionListeners().size());
+		assertThat(testContextManager.getTestExecutionListeners().size()).as("Num registered TELs for " + testClass).isEqualTo(expected);
 	}
 
 
@@ -236,7 +238,7 @@ public class TestExecutionListenersTests {
 	static class NonInheritedListenersTestCase extends InheritedListenersTestCase {
 	}
 
-	@TestExecutionListeners({FooTestExecutionListener.class, BarTestExecutionListener.class})
+	@TestExecutionListeners({ FooTestExecutionListener.class, BarTestExecutionListener.class })
 	interface ExplicitListenersTestInterface {
 	}
 

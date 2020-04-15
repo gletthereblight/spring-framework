@@ -36,20 +36,20 @@ import org.springframework.transaction.PlatformTransactionManager;
 public class PopulatedSchemaDatabaseConfig {
 
 	@Bean
-	public PlatformTransactionManager transactionManager() {
+	PlatformTransactionManager transactionManager() {
 		return new DataSourceTransactionManager(dataSource());
 	}
 
 	@Bean
-	public DataSource dataSource() {
+	DataSource dataSource() {
 		return new EmbeddedDatabaseBuilder()//
-				.generateUniqueName(true)//
-				.addScript("classpath:/org/springframework/test/context/jdbc/schema.sql") //
-				.build();
+		.generateUniqueName(true)
+		.addScript("classpath:/org/springframework/test/context/jdbc/schema.sql") //
+		.build();
 	}
 
 	@Bean
-	public JdbcTemplate jdbcTemplate(DataSource dataSource) {
+	JdbcTemplate jdbcTemplate(DataSource dataSource) {
 		return new JdbcTemplate(dataSource);
 	}
 

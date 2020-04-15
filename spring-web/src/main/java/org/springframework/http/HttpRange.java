@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2018 the original author or authors.
+ * Copyright 2002-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.StringJoiner;
 
@@ -66,19 +65,8 @@ public abstract class HttpRange {
 		long contentLength = getLengthFor(resource);
 		long start = getRangeStart(contentLength);
 		long end = getRangeEnd(contentLength);
+		Assert.isTrue(start < contentLength, "'position' exceeds the resource length " + contentLength);
 		return new ResourceRegion(resource, start, end - start + 1);
-	}
-
-	private static long getLengthFor(Resource resource) {
-		long contentLength;
-		try {
-			contentLength = resource.contentLength();
-			Assert.isTrue(contentLength > 0, "Resource content length should be > 0");
-		}
-		catch (IOException ex) {
-			throw new IllegalArgumentException("Failed to obtain Resource content length", ex);
-		}
-		return contentLength;
 	}
 
 	/**
@@ -132,8 +120,8 @@ public abstract class HttpRange {
 	 * <p>This method can be used to parse an {@code Range} header.
 	 * @param ranges the string to parse
 	 * @return the list of ranges
-	 * @throws IllegalArgumentException if the string cannot be parsed, or if
-	 * the number of ranges is greater than 100.
+	 * @throws IllegalArgumentException if the string cannot be parsed
+	 * or if the number of ranges is greater than 100
 	 */
 	public static List<HttpRange> parseRanges(@Nullable String ranges) {
 		if (!StringUtils.hasLength(ranges)) {
@@ -145,7 +133,9 @@ public abstract class HttpRange {
 		ranges = ranges.substring(BYTE_RANGE_PREFIX.length());
 
 		String[] tokens = StringUtils.tokenizeToStringArray(ranges, ",");
-		Assert.isTrue(tokens.length <= MAX_RANGES, () -> "Too many ranges " + tokens.length);
+		if (tokens.length > MAX_RANGES) {
+			throw new IllegalArgumentException("Too many ranges: " + tokens.length);
+		}
 		List<HttpRange> result = new ArrayList<>(tokens.length);
 		for (String token : tokens) {
 			result.add(parseRange(token));
@@ -159,7 +149,7 @@ public abstract class HttpRange {
 		if (dashIdx > 0) {
 			long firstPos = Long.parseLong(range.substring(0, dashIdx));
 			if (dashIdx < range.length() - 1) {
-				Long lastPos = Long.parseLong(range.substring(dashIdx + 1, range.length()));
+				Long lastPos = Long.parseLong(range.substring(dashIdx + 1));
 				return new ByteRange(firstPos, lastPos);
 			}
 			else {
@@ -181,8 +171,7 @@ public abstract class HttpRange {
 	 * @param ranges the list of ranges
 	 * @param resource the resource to select the regions from
 	 * @return the list of regions for the given resource
-	 * @throws IllegalArgumentException if the sum of all ranges exceeds the
-	 * resource length.
+	 * @throws IllegalArgumentException if the sum of all ranges exceeds the resource length
 	 * @since 4.3
 	 */
 	public static List<ResourceRegion> toResourceRegions(List<HttpRange> ranges, Resource resource) {
@@ -195,12 +184,27 @@ public abstract class HttpRange {
 		}
 		if (ranges.size() > 1) {
 			long length = getLengthFor(resource);
-			long total = regions.stream().map(ResourceRegion::getCount).reduce(0L, (count, sum) -> sum + count);
-			Assert.isTrue(total < length,
-					() -> "The sum of all ranges (" + total + ") " +
-							"should be less than the resource length (" + length + ")");
+			long total = 0;
+			for (ResourceRegion region : regions) {
+				total += region.getCount();
+			}
+			if (total >= length) {
+				throw new IllegalArgumentException("The sum of all ranges (" + total +
+						") should be less than the resource length (" + length + ")");
+			}
 		}
 		return regions;
+	}
+
+	private static long getLengthFor(Resource resource) {
+		try {
+			long contentLength = resource.contentLength();
+			Assert.isTrue(contentLength > 0, "Resource content length should be > 0");
+			return contentLength;
+		}
+		catch (IOException ex) {
+			throw new IllegalArgumentException("Failed to obtain Resource content length", ex);
+		}
 	}
 
 	/**
@@ -264,7 +268,7 @@ public abstract class HttpRange {
 		}
 
 		@Override
-		public boolean equals(Object other) {
+		public boolean equals(@Nullable Object other) {
 			if (this == other) {
 				return true;
 			}
@@ -327,7 +331,7 @@ public abstract class HttpRange {
 		}
 
 		@Override
-		public boolean equals(Object other) {
+		public boolean equals(@Nullable Object other) {
 			if (this == other) {
 				return true;
 			}

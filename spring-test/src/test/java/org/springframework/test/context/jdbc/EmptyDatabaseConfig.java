@@ -20,6 +20,7 @@ import javax.sql.DataSource;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -34,15 +35,20 @@ import org.springframework.transaction.PlatformTransactionManager;
 public class EmptyDatabaseConfig {
 
 	@Bean
-	public PlatformTransactionManager transactionManager() {
-		return new DataSourceTransactionManager(dataSource());
+	JdbcTemplate jdbcTemplate(DataSource dataSource) {
+		return new JdbcTemplate(dataSource);
 	}
 
 	@Bean
-	public DataSource dataSource() {
+	PlatformTransactionManager transactionManager(DataSource dataSource) {
+		return new DataSourceTransactionManager(dataSource);
+	}
+
+	@Bean
+	DataSource dataSource() {
 		return new EmbeddedDatabaseBuilder()//
-				.generateUniqueName(true)//
-				.build();
+		.setName("empty-sql-scripts-test-db")//
+		.build();
 	}
 
 }
